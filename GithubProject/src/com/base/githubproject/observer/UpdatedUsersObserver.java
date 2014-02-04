@@ -18,8 +18,7 @@ import com.base.githubproject.service.GithubService;
 
 /**
  * Used by the {@link UserListLoader}. An observer that listens for
- * application installs, removals, and updates (and notifies the loader when
- * these changes are detected).
+ * new added users (and notifies the loader when these changes are detected).
  */
 public class UpdatedUsersObserver extends BroadcastReceiver {
 	private static final String TAG = "UpdatedUsersObserver";

@@ -18,8 +18,8 @@ import com.base.githubproject.entities.User;
 import com.base.githubproject.observer.UpdatedUsersObserver;
 
 /**
- * An implementation of AsyncTaskLoader which loads a {@code List<AppEntry>}
- * containing all installed applications on the device.
+ * An implementation of AsyncTaskLoader which loads a {@code List<User>}
+ * containing all downloaded github users on the device.
  */
 public class UserListLoader extends AsyncTaskLoader<List<User>> {
 	private static final String TAG = "UserListLoader";
@@ -75,7 +75,7 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   		}
 
   		// Hold a reference to the old data so it doesn't get garbage collected.
-  		// We must protect it until the new data has been delivered.
+  		// Must protect it until the new data has been delivered.
   		List<User> oldUsers = mUsers;
   		mUsers = users;
 
