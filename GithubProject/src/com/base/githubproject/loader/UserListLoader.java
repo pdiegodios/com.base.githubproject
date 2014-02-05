@@ -11,6 +11,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.content.AsyncTaskLoader;
 import android.util.Log;
 
+import com.base.githubproject.adapter.UserListAdapter;
 import com.base.githubproject.database.DBHelper;
 import com.base.githubproject.database.DataSource;
 import com.base.githubproject.database.UserDataSource;
@@ -51,11 +52,26 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   		if (users == null) {
   			users = new ArrayList<User>();
   		}
+  		else{
+  			users.addAll(getHeaders());
+  		}
 
 	    // Sort the list.
 	    Collections.sort(users, ALPHA_COMPARATOR);
 
 	    return users;
+  	}
+  	
+  	//Headers in the listView
+  	private List<User> getHeaders(){
+  		List<User> headers = new ArrayList<User>();
+		String sections = UserListAdapter.sections;
+  		for(int i=0; i<sections.length();i++){
+  			User header = new User();
+  			header.setLogin(sections.substring(i, i+1));
+  			headers.add(header);
+  		}
+  		return headers;
   	}
 
 

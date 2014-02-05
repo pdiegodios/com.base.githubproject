@@ -42,9 +42,14 @@ public class UserDataSource extends DataSource<User>{
 			+ COLUMN_FOLLOWING_URL + " text,"+ COLUMN_GISTS_URL+" text,"
 			+ COLUMN_STARRED_URL + " text,"+ COLUMN_SUBSCRIPTIONS_URL+" text,"
 			+ COLUMN_ORGANIZATIONS_URL + " text,"+ COLUMN_REPOS_URL+" text,"
-			+ COLUMN_EVENTS_URL + " text not null,"+ COLUMN_RECEIVED_EVENTS_URL+" text,"
+			+ COLUMN_EVENTS_URL + " text,"+ COLUMN_RECEIVED_EVENTS_URL+" text,"
 			+ COLUMN_TYPE + " integer,"+ COLUMN_SITE_ADMIN+" text"
 			+");";
+	
+	public static String insert(String login){
+		String query="INSERT INTO "+ TABLE+ "("+COLUMN_LOGIN+") values ('"+login+"');";
+		return query;
+	}
 
 	public UserDataSource(SQLiteDatabase database) {
 		super(database);

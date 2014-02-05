@@ -1,30 +1,34 @@
 package com.base.githubproject.adapter;
 
 import java.util.List;
+
+import android.R.color;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.net.Uri;
-import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
-import android.widget.AdapterView.OnItemClickListener;
 
 import com.base.githubproject.R;
 import com.base.githubproject.entities.User;
 
 /**
- * A custom ArrayAdapter used by the {@link UserListFragment} to display the
+ * A custom ArrayAdapter used by the {@link AlphabeticalListView} to display the
  * users from github.
  */
-public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexer, OnItemClickListener {
+public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexer{
 	private LayoutInflater mInflater;
-	private static String sections = "#abcdefghilmnopqrstuvz";
+	public static String sections = "#abcdefghilmnopqrstuvz";
 	private Context mContext;
 
 	public UserListAdapter(Context ctx) {
@@ -43,10 +47,25 @@ public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexe
 			view = convertView;
 		}
 
+		ImageView imageIcon = (ImageView) view.findViewById(R.id.icon);
+		TextView textLogin = (TextView) view.findViewById(R.id.text);
+		LinearLayout line = (LinearLayout) view.findViewById(R.id.line); 
 		User item = getItem(position);
-		//TODO: Load picture from User
-		//((ImageView) view.findViewById(R.id.icon)).setImageDrawable(userPicture);
-		((TextView) view.findViewById(R.id.text)).setText(item.getLogin());
+		final String login = item.getLogin();
+		final String url = item.getHtml_url();
+
+		//TODO: Load picture 
+		//imageIcon.setImageDrawable(userPicture)
+		textLogin.setText(login);
+		textLogin.setTextColor(Color.BLACK);
+		imageIcon.setImageResource(R.drawable.ic_launcher);
+		if(login.length()==1){
+			textLogin.setText(login.toUpperCase());
+			textLogin.setTextColor(Color.BLUE);
+			imageIcon.setImageDrawable(null);
+		}
+		launchUrlOnClick(textLogin, url);
+		launchUrlOnClick(imageIcon, url);	
 
 		return view;
 	}
@@ -88,14 +107,16 @@ public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexe
 			sectionsArr[i] = "" + sections.charAt(i);
 		return sectionsArr;
 	}
-
-	@Override
-	public void onItemClick(AdapterView<?> arg0, View view, int position, long id) {
-		User userClicked = (User) getItem(position);
-		String url = userClicked.getHtml_url();
-			Log.i("CLICK!!!", "User "+userClicked.getLogin()+" clicked\n accessing to url: "+url);
-		Intent iWeb = new Intent(Intent.ACTION_VIEW);
-		iWeb.setData(Uri.parse(url));
-		mContext.startActivity(iWeb);		
+	
+	private void launchUrlOnClick(View v, String gitUrl){
+		final String url = gitUrl;
+		v.setOnClickListener(new OnClickListener() {			
+			@Override
+			public void onClick(View v) {
+				Intent iWeb = new Intent(Intent.ACTION_VIEW);
+				iWeb.setData(Uri.parse(url));
+				mContext.startActivity(iWeb);					
+			}
+		});
 	}
 }

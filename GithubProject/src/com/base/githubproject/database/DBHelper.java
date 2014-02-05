@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 public class DBHelper extends SQLiteOpenHelper {
-	private static final String DATABASE_NAME = "MyDatabase.db";
+	private static final String DATABASE_NAME = "gitUsersDB.db";
     private static final int DATABASE_VERSION = 1;
  
     public DBHelper(Context context) {
@@ -15,7 +15,7 @@ public class DBHelper extends SQLiteOpenHelper {
  
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(UserDataSource.DATABASE_CREATE);  
+        db.execSQL(UserDataSource.DATABASE_CREATE);       
     }
  
     @Override

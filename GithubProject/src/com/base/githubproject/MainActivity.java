@@ -6,7 +6,6 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.ConnectivityManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
@@ -14,8 +13,6 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.TextView;
 
 import com.base.githubproject.adapter.UserListAdapter;
@@ -23,6 +20,7 @@ import com.base.githubproject.entities.User;
 import com.base.githubproject.loader.UserListLoader;
 import com.base.githubproject.service.GithubService;
 import com.base.githubproject.widget.AlphabeticalListView;
+
 /**
  * The main activity holds an {@link UserListFragment} which displays the list of
  * users download from github API on the device.
