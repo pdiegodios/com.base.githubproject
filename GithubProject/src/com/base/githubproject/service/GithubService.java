@@ -17,6 +17,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.base.githubproject.R;
 import com.base.githubproject.database.DBHelper;
 import com.base.githubproject.database.UserDataSource;
 import com.base.githubproject.entities.User;
@@ -24,24 +25,38 @@ import com.google.gson.Gson;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 /**
  * Service to make calls to github API {@link http://developer.github.com/v3/}.
  * For unauthenticated requests, the rate limit allows you to make up to 60 requests per hour
- * So, it is necessary to manage limit raised to stop the service and call it again an hour later.
+ * So, it is necessary to manage limit raised (403 forbidden status) to stop service and call 
+ * it again an hour later. 
+ * The user can stop service manually using a notification displayed in notification bar.
  */
 public class GithubService extends IntentService {
 	public static final String NOTIFICATION = "com.base.githubproject.service.receiver";
+	public static final String STOP = "com.base.githubproject.service.stop";
 	private static final String URL = "https://api.github.com/users?since=";
 	private static final String TAG = "GithubService";
 	private static final boolean DEBUG = true;
+	private static final int ID = 1;
+	private BroadcastReceiver mReceiver;
+	//flag to stop manually by user
+	private boolean mStop = false;
+	//minutes to check again if there are new users from Github API
+	private int mInterval = 61; 
     private long mPosition;
 
 	public GithubService() {
@@ -54,27 +69,27 @@ public class GithubService extends IntentService {
 	};
 	
 	@Override
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		super.onStartCommand(intent, flags, startId);
+		return START_STICKY;
+	}
+	
+	@Override
 	public void onDestroy() {
+		//Close notification before destroy service
 		if(DEBUG) Log.i(TAG, "Destroying Service");
 		super.onDestroy();
 	};
     
     @Override
 	protected void onHandleIntent(Intent intent) {
-    	if(intent!=null){
-	        Bundle myBundle=intent.getExtras();
-	        mPosition = myBundle.getLong(UserDataSource.COLUMN_ID);
-    	}
-    	else{
-    		//It was killed due low resources or other reason, but it didn't finish
-    		//get last position saved
-    		mPosition = getLastUserId();
-    	}
-    	
+    	mPosition = getLastUserId();
         // Start to download existing Github users calling Github API
         // start from the last position saved in database
     	boolean keepAlive=true;
-        while(keepAlive){      	
+    	registerReceiver();
+        while(keepAlive && !mStop){      	
+        	callNotification();
         	//will be downloading users until finish while there are more users in github
         	String read_users = readUserFeed(URL+mPosition);
         	if(read_users!=null && !read_users.isEmpty()){
@@ -94,14 +109,12 @@ public class GithubService extends IntentService {
 	    				mPosition = user.getId(); 
 	    				//add all new users to SQLiteDatabase
 	    				addUsers(users);
+	    				//to warn the broadcast receiver: There are new users to load
+	    				publish();
 	    			}
 	    			else{
-	    				//send -1 to break the looper
+	    				//if user==null=>numItems==0=>There is no more users to download
 	    				keepAlive=false;
-	    			}
-	    			if(mPosition>0){
-	    				//to warn the broadcast receiver
-	    				publish();
 	    			}
 	    		} catch (Exception e) {
 	    			if(DEBUG) Log.e(TAG, e.getMessage());
@@ -114,15 +127,30 @@ public class GithubService extends IntentService {
         	}
         }      
         //If service finished to download all new users or some error happened. The service
-        //will be restarted 2 hours forward to check if there are new users
         if(DEBUG)
         	Log.i(TAG, "loop finished");
-        startServiceAfterInterval(120);
+		unregisterReceiver(mReceiver);
+        //If it wasn't manually stopped it will reset after mInterval minutes
+        if(!mStop) {
+        	startServiceAfterInterval(mInterval);  	
+    		NotificationManager nm = (NotificationManager) this.getBaseContext().getSystemService(Context.NOTIFICATION_SERVICE);
+    		nm.cancel(ID);		
+        }	
         stopSelf();
     }
         
 
+    
 	//AUXILIAR METHODS	
+    
+    /**
+     * Method to make a GET call to WebService returning String depending Status Response.
+     * @param url: url to get JSON
+     * @return 
+     * status = 200 OK: It will obtain a String to convert in JSONArray with all elements returned from WebService. 
+     * status = 403 Forbidden: Empty String. It will reset service after specific interval.
+     * another status: Empty String.
+     */
 	private String readUserFeed(String url){
 		if(DEBUG)
 			Log.i(TAG, "GET "+url);
@@ -145,12 +173,9 @@ public class GithubService extends IntentService {
 				Log.e(this.toString(), "Failed to download file "+statusCode+"\n"+
 						"you probably exceed limit of requests per hour. The service " +
 						"will be reset 1 hour later");
-				startServiceAfterInterval(61); //Call again in 61 minutes
-				stopSelf();
 			}
 			else {
-				Log.e(this.toString(), "Failed to download file "+statusCode);		
-				stopSelf();		
+				Log.e(this.toString(), "Failed to download file "+statusCode);	
 			}
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
@@ -176,6 +201,10 @@ public class GithubService extends IntentService {
 		database.close();
 	}
 	
+	/**
+	 * Query to local database asking for last user ID added.
+	 * @return last github user ID added to sqlite DB or 0 if there are no users
+	 */
 	private long getLastUserId(){
 		long lastId = 0;
 		DBHelper helper = new DBHelper(this.getBaseContext());
@@ -190,7 +219,7 @@ public class GithubService extends IntentService {
 	}
 	
 	/**
-	 * Call to BroadcastReceiver to warn loader that there are new changes
+	 * Send Broadcast to warn loader that there are new changes
 	 */
 	private void publish() {
 		if(DEBUG)
@@ -201,37 +230,35 @@ public class GithubService extends IntentService {
 	}
 
 	/**
-	 * This method program service to run after a specific time
+	 * Method to reset service after a specific time
 	 * @param minutes: time to start the service again
 	 */
 	private void startServiceAfterInterval(int minutes) {
+		if(DEBUG)
+			Log.i(TAG, "Restarting service in "+minutes+" minutes");
 		Intent iService = new Intent(this.getBaseContext(), GithubService.class);
-		iService.putExtra(UserDataSource.COLUMN_ID, mPosition);	
 		AlarmManager am = (AlarmManager) this.getSystemService(ALARM_SERVICE);
 	    PendingIntent pi = PendingIntent.getService(this, 0, iService, PendingIntent.FLAG_UPDATE_CURRENT);
 		am.cancel(pi);
-		am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-				SystemClock.elapsedRealtime() + minutes*60*1000,
-				minutes*60*1000, pi);
+		am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+				SystemClock.elapsedRealtime() + minutes*60*1000, pi);
 	}
 	
 	/**
-	 * Auxiliar method to stop both Notification and Service.
+	 * Auxiliar method to stop loop manually and consequently...the service.
 	 */
-	/*private void stop(){
+	private void stop(){
 		if(DEBUG)
 			Log.i(TAG,"stopping service");
-		NotificationManager nm = (NotificationManager) this.getBaseContext().getSystemService(Context.NOTIFICATION_SERVICE);
-		nm.cancel(ID);
-		unregisterReceiver(mReceiver);
-		stopSelf();
-	}*/
+		mStop=true;
+	}
 	
 	/**
-	 * New receiver to heard if STOP action is called (from notification)
-	 * if it happens stop() method is called.
+	 * New receiver to hear if STOP action is called.
+	 * It will be called when user push the notification.
+	 * If it happens stop() method is called.
 	 */
-	/*private void registerReceiver(){
+	private void registerReceiver(){
     	IntentFilter filter = new IntentFilter();
     	filter.addAction(STOP);
     	// Add other actions as needed
@@ -239,18 +266,19 @@ public class GithubService extends IntentService {
     	    @Override
     	    public void onReceive(Context context, Intent intent) {
     	        if (intent.getAction().equals(STOP)) {
+    	        	if(DEBUG) Log.i(TAG, "Stop action received");
     	            stop();
     	        } 
     	    }
     	};
     	registerReceiver(mReceiver, filter);
-	}*/
+	}
 	
 	/**
 	 * Cancel current notification if it exists and send new notification
-	 * to notification bar to warn users than Service is working background
+	 * to notification bar to warn users than Service is working on background
 	 */
-	/*private void callNotification(){    	
+	private void callNotification(){    	
 		NotificationManager nm = (NotificationManager) this.getBaseContext().getSystemService(Context.NOTIFICATION_SERVICE);
 		nm.cancel(ID);		
 		//Send Stop Action when Notification is pushed
@@ -261,14 +289,13 @@ public class GithubService extends IntentService {
 		NotificationCompat.Builder notBuilder = new NotificationCompat.Builder(this.getBaseContext())
 		        .setContentTitle("Downloading... PUSH TO STOP")
 		        .setContentText(text)
-		        .setLights(0xff0000ff, 100, 100)
-		        .setSmallIcon(R.drawable.ic_launcher)
+		        .setSmallIcon(R.drawable.ic_notification)
 		        .setContentIntent(stopPendingIntent);
 		Notification notification = notBuilder.build();            		  
 		NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		// Flag to hide notification after selection
 		notification.flags |= Notification.FLAG_AUTO_CANCEL;
 		notificationManager.notify(ID, notification); 
-	}*/
+	}
 	
 }

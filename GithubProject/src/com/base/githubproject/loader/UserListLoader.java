@@ -80,7 +80,7 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   		mUsers = users;
 
   		if (isStarted()) {
-  			if (DEBUG) Log.i(TAG, "Delivering results to the LoaderManager for the ListFragment to display!");
+  			if (DEBUG) Log.i(TAG, "Delivering results to the LoaderManager for the FragmentActivity to display!");
   			super.deliverResult(users);
   		}
 
