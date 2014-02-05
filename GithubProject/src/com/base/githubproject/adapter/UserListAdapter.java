@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.base.githubproject.R;
@@ -38,18 +37,18 @@ public class UserListAdapter extends ArrayAdapter<User> {
 
 		User item = getItem(position);
 		//TODO: Load picture from User
-		((ImageView) view.findViewById(R.id.icon)).setImageDrawable(null);
+		//((ImageView) view.findViewById(R.id.icon)).setImageDrawable(userPicture);
 		((TextView) view.findViewById(R.id.text)).setText(item.getLogin());
 
 		return view;
 	}
 
 	public void setData(List<User> data) {
+		setNotifyOnChange(false); //// Prevents 'clear()' from clearing/resetting the listview
 		clear();
 		if (data != null) {
-			for (int i = 0; i < data.size(); i++) {
-				add(data.get(i));
-			}
+			addAll(data);
 		}
+		notifyDataSetChanged();
 	}
 }

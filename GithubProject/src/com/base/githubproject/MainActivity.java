@@ -2,9 +2,13 @@ package com.base.githubproject;
 
 import java.util.List;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.ListFragment;
@@ -24,6 +28,9 @@ import com.base.githubproject.service.GithubService;
  * users download from github API on the device.
  */
 public class MainActivity extends FragmentActivity {
+	private static final boolean DEBUG = true;
+	private static final String TAG = "MainActivity";
+	private int mInterval = 3;//minutes
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -34,8 +41,13 @@ public class MainActivity extends FragmentActivity {
 			UserListFragment list = new UserListFragment();
 			fm.beginTransaction().add(android.R.id.content, list).commit();
 		}	
-
+		//Service called to download all users from github
 		callService();
+	}
+	
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
 	}
 
 	private void callService() {
@@ -51,7 +63,27 @@ public class MainActivity extends FragmentActivity {
 		database.close();
 		Intent iService = new Intent(this, GithubService.class);
 		iService.putExtra(UserDataSource.COLUMN_ID, position);
-		startService(iService);		
+        // check the global background data setting
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+        if (!cm.getActiveNetworkInfo().isConnected()) {     
+        	if(DEBUG)
+        		Log.i(TAG, "it is not possible to connect");
+        	//If it isn't connected we'll try after interval
+            startServiceAfterInterval(iService, mInterval);
+        }
+        else{
+        	//It is connected, so we start the service
+        	startService(iService);		
+        }
+	}
+
+	private void startServiceAfterInterval(Intent iService, int minutes) {
+		AlarmManager am = (AlarmManager) this.getSystemService(ALARM_SERVICE);
+	    PendingIntent pi = PendingIntent.getService(this, 0, iService, PendingIntent.FLAG_UPDATE_CURRENT);
+		am.cancel(pi);
+		am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+				SystemClock.elapsedRealtime() + minutes*60*1000,
+				minutes*60*1000, pi);
 	}
 
 	/**
@@ -70,7 +102,6 @@ public class MainActivity extends FragmentActivity {
 	    @Override
 	    public void onActivityCreated(Bundle savedInstanceState) {
 	    	super.onActivityCreated(savedInstanceState);
-	    	setHasOptionsMenu(true);
 	    	mAdapter = new UserListAdapter(getActivity());
 	    	setEmptyText("No users");
 	    	setListAdapter(mAdapter);
@@ -100,9 +131,9 @@ public class MainActivity extends FragmentActivity {
 	    @Override
 	    public void onLoadFinished(Loader<List<User>> loader, List<User> data) {
 	    	if (DEBUG) 
-	    		Log.i(TAG, "onLoadFinished() called!");
-	    	mAdapter.setData(data);
-	
+	    		Log.i(TAG, "onLoadFinished() called!\n"+
+	    				"isResumed()="+isResumed());
+	    	mAdapter.setData(data);	
 	    	if (isResumed()) {
 	    		setListShown(true);
 	    	} else {
@@ -113,7 +144,7 @@ public class MainActivity extends FragmentActivity {
 	    @Override
 	    public void onLoaderReset(Loader<List<User>> loader) {
 	    	if (DEBUG) 
-	    		Log.i(TAG, "+++ onLoadReset() called! +++");
+	    		Log.i(TAG, "onLoadReset() called!");
 	    	mAdapter.setData(null);
 	    }
 	}
