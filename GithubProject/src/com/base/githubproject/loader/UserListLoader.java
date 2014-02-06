@@ -24,9 +24,11 @@ import com.base.githubproject.observer.UpdatedUsersObserver;
  */
 public class UserListLoader extends AsyncTaskLoader<List<User>> {
 	private static final String TAG = "UserListLoader";
+	//Separators inside list
   	private static final boolean DEBUG = true;
   	// An observer to notify the Loader when new users are downloaded.
   	private UpdatedUsersObserver mUsersObserver;
+	private DBHelper mDBHelper;
   	private List<User> mUsers;
   	private Context mContext;
 
@@ -44,15 +46,17 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   		if (DEBUG) Log.i(TAG, "loadInBackground() called!");
 
   		// Retrieve all users from sqliteDb.
-  		DBHelper helper = new DBHelper(mContext);
-  		SQLiteDatabase database = helper.getWritableDatabase();
+		if(mDBHelper==null){
+			mDBHelper = new DBHelper(mContext);
+		}
+		SQLiteDatabase database = mDBHelper.getReadableDatabase();
   		DataSource<User> dataSource = new UserDataSource(database);
   		List<User> users = dataSource.queryForAll();
   		database.close();
   		if (users == null) {
   			users = new ArrayList<User>();
   		}
-  		else{
+  		else if (users.size()>0){
   			users.addAll(getHeaders());
   		}
 
@@ -64,14 +68,14 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   	
   	//Headers in the listView
   	private List<User> getHeaders(){
-  		List<User> headers = new ArrayList<User>();
-		String sections = UserListAdapter.sections;
-  		for(int i=0; i<sections.length();i++){
+  		List<User> headersList = new ArrayList<User>();
+  		String headers = UserListAdapter.sections;
+  		for(int i=0; i<headers.length();i++){
   			User header = new User();
-  			header.setLogin(sections.substring(i, i+1));
-  			headers.add(header);
+  			header.setLogin(headers.substring(i, i+1));
+  			headersList.add(header);
   		}
-  		return headers;
+  		return headersList;
   	}
 
 
@@ -89,7 +93,6 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   				return;
   			}
   		}
-
   		// Hold a reference to the old data so it doesn't get garbage collected.
   		// Must protect it until the new data has been delivered.
   		List<User> oldUsers = mUsers;
@@ -115,15 +118,13 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   			Log.i(TAG, "onStartLoading() called!");
   		if (mUsers != null) {
   			// Deliver any previously loaded data immediately.
-  			if (DEBUG) 
-  				Log.i(TAG, "Delivering previously loaded data to the client...");
+  			if (DEBUG) Log.i(TAG, "Delivering previously loaded data to the client...");
   			deliverResult(mUsers);
   		}
 
   		// Register the observers that will notify the Loader when changes are made.
   		if (mUsersObserver == null) {
-  			if(DEBUG)
-  				Log.i(TAG, "Initializing broadcastReceiver mUsersObserver");
+  			if(DEBUG) Log.i(TAG, "Initializing broadcastReceiver mUsersObserver");
   			mUsersObserver = new UpdatedUsersObserver(this);
   		}
 
@@ -132,12 +133,11 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   			// onContentChanged() on the Loader, which will cause the next call to
   			// takeContentChanged() to return true. If this is ever the case (or if
   			// the current data is null), we force a new load.
-  			if (DEBUG) 
-  				Log.i(TAG, "A content change has been detected... so force load!");
+  			if (DEBUG) Log.i(TAG, "A content change has been detected... so force load!");
   			forceLoad();
   		} else if (mUsers == null) {
   			if (DEBUG) 
-  				Log.i(TAG, "The current data is data is null... so force load!");
+  				Log.i(TAG, "The current data is null... so force load!");
   			forceLoad();
   		}
   	}
@@ -166,6 +166,10 @@ public class UserListLoader extends AsyncTaskLoader<List<User>> {
   			getContext().unregisterReceiver(mUsersObserver);
   			mUsersObserver = null;
   		}
+        if (mDBHelper != null) { 
+        	//mDBHelper.close();
+            mDBHelper = null;
+        }
   	}
 
   	@Override

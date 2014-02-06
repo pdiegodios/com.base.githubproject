@@ -52,7 +52,7 @@ public class AlphabeticalListView extends ListView {
 
 		Paint p = new Paint();
 		p.setColor(Color.WHITE);
-		p.setAlpha(0);
+		p.setAlpha(150);
 
 		canvas.drawRect(sx, this.getPaddingTop(), sx + scaledWidth,
 				this.getHeight() - this.getPaddingBottom(), p);
@@ -105,7 +105,8 @@ public class AlphabeticalListView extends ListView {
 					section = sections[currentPosition];
 					this.setSelection(((SectionIndexer) getAdapter())
 							.getPositionForSection(currentPosition));
-				}
+				}		
+				showLetter = true;
 				break;
 			}
 			case MotionEvent.ACTION_MOVE: {
@@ -119,13 +120,14 @@ public class AlphabeticalListView extends ListView {
 					section = sections[currentPosition];
 					this.setSelection(((SectionIndexer) getAdapter())
 							.getPositionForSection(currentPosition));
-				}
+				}		
+				showLetter = true;
 				break;
 	
 			}
 			case MotionEvent.ACTION_UP: {
 				listHandler = new ListHandler();
-				listHandler.sendEmptyMessageDelayed(0, 30 * 1000);
+				listHandler.sendEmptyMessageDelayed(0, 2 * 1000);
 				break;
 			}
 		}

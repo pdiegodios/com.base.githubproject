@@ -1,21 +1,17 @@
 package com.base.githubproject.adapter;
 
 import java.util.List;
-
-import android.R.color;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.SectionIndexer;
 import android.widget.TextView;
 
@@ -27,8 +23,8 @@ import com.base.githubproject.entities.User;
  * users from github.
  */
 public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexer{
+	public static String sections = "#abcdefghijklmnopqrstuvwxyz";
 	private LayoutInflater mInflater;
-	public static String sections = "#abcdefghilmnopqrstuvz";
 	private Context mContext;
 
 	public UserListAdapter(Context ctx) {
@@ -49,23 +45,26 @@ public class UserListAdapter extends ArrayAdapter<User> implements SectionIndexe
 
 		ImageView imageIcon = (ImageView) view.findViewById(R.id.icon);
 		TextView textLogin = (TextView) view.findViewById(R.id.text);
-		LinearLayout line = (LinearLayout) view.findViewById(R.id.line); 
 		User item = getItem(position);
 		final String login = item.getLogin();
 		final String url = item.getHtml_url();
 
 		//TODO: Load picture 
 		//imageIcon.setImageDrawable(userPicture)
-		textLogin.setText(login);
-		textLogin.setTextColor(Color.BLACK);
-		imageIcon.setImageResource(R.drawable.ic_launcher);
 		if(login.length()==1){
 			textLogin.setText(login.toUpperCase());
 			textLogin.setTextColor(Color.BLUE);
-			imageIcon.setImageDrawable(null);
+			imageIcon.setImageResource(R.drawable.ic_header);
+			textLogin.setOnClickListener(null);
+			imageIcon.setOnClickListener(null);
 		}
-		launchUrlOnClick(textLogin, url);
-		launchUrlOnClick(imageIcon, url);	
+		else{
+			textLogin.setText(login);
+			textLogin.setTextColor(Color.BLACK);
+			imageIcon.setImageResource(R.drawable.ic_launcher);
+			launchUrlOnClick(textLogin, url);
+			launchUrlOnClick(imageIcon, url);	
+		}
 
 		return view;
 	}

@@ -89,10 +89,10 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
 
     @Override
     public void onLoadFinished(Loader<List<User>> loader, List<User> data) {
-    	if (DEBUG) 
-    		Log.i(TAG, "onLoadFinished() called!");
+    	if (DEBUG) Log.i(TAG, "onLoadFinished() called!");
     	mAdapter.setData(data);	
-    	if(data==null || data.isEmpty()){
+    	if(data==null || data.size()==0){
+    		//It is necessary to change text message if there is no users
     		setListShown(false);
     		setEmptyText(R.string.empty);
     	}

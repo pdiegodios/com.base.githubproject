@@ -45,11 +45,6 @@ public class UserDataSource extends DataSource<User>{
 			+ COLUMN_EVENTS_URL + " text,"+ COLUMN_RECEIVED_EVENTS_URL+" text,"
 			+ COLUMN_TYPE + " integer,"+ COLUMN_SITE_ADMIN+" text"
 			+");";
-	
-	public static String insert(String login){
-		String query="INSERT INTO "+ TABLE+ "("+COLUMN_LOGIN+") values ('"+login+"');";
-		return query;
-	}
 
 	public UserDataSource(SQLiteDatabase database) {
 		super(database);
