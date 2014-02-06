@@ -3,6 +3,7 @@ package com.base.githubproject;
 import java.util.List;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -32,7 +33,7 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
     private UserListAdapter mAdapter;
     private AlphabeticalListView mAlphaList;
     private TextView mEmptyText;
-	private int mInterval = 1800;//seconds to retry if there is no connexion
+	private int mInterval = 10;//minutes to retry if there is no connexion
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -117,16 +118,20 @@ public class MainActivity extends FragmentActivity implements LoaderManager.Load
         }
         else{
         	//It is connected, so we start the service
-    		startServiceAfterInterval(1);
+    		startServiceAfterInterval(0);
         }
 	}
 
-	private void startServiceAfterInterval(int seconds) {
-		Log.i(this.toString(), "Start Service after "+seconds+" seconds");
+	private void startServiceAfterInterval(int minutes) {
 		Intent iService = new Intent(this, GithubService.class);
-		AlarmManager am = (AlarmManager) this.getSystemService(ALARM_SERVICE);
-	    PendingIntent pi = PendingIntent.getService(this, 0, iService, PendingIntent.FLAG_UPDATE_CURRENT);
-		am.cancel(pi);
-		am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + seconds*1000, pi);
+		if (minutes==0){
+			this.startService(iService);
+		}
+		else{
+			AlarmManager am = (AlarmManager) this.getSystemService(ALARM_SERVICE);
+		    PendingIntent pi = PendingIntent.getService(this, 0, iService, PendingIntent.FLAG_UPDATE_CURRENT);
+			am.cancel(pi);
+			am.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + minutes*60*1000, pi);
+		}
 	}
 }
